@@ -186,9 +186,10 @@ async def load_game_info():
                 command=lambda url=update['url'], button=game_download, size=int(update['size']): async_op(
                     async_download_handler, [url, save_path, size, button]))
             if "ContentID" in update and len(update["RAP"]) == 32:
-                with open(f'{save_path}/{update["ContentID"]}.rap', "wb") as f:
-                    f.write(unhexlify(update["RAP"]))
-                    f.close()
+                if not os.path.exists(f'{config["settings"]["rap_location"]}/{update["ContentID"]}.rap'):
+                    with open(f'{config["settings"]["rap_location"]}/{update["ContentID"]}.rap', "wb") as f:
+                        f.write(unhexlify(update["RAP"]))
+                        f.close()
             game_download.pack()
     # Make the loading bar and label invisible since they are no longer needed.
     loading_bar.pack_forget()
@@ -234,6 +235,9 @@ if not os.path.exists("config.ini"):
     config.add_section("settings")
     config["settings"]["file_path"] = filedialog.askopenfilename(title="Open Your RPCS3 'games.yml' File",
                                                                  filetypes=(("RPCS3 'games.yml' File", "games.yml"),))
+
+    # Prompt the user to select a folder to save their rap files in.
+    config["settings"]["rap_location"] = filedialog.askdirectory(title="Select a folder to save raps in")
 
     # Prompt the user to select a folder to save their PS3 game updates in.
     config["settings"]["save_path"] = filedialog.askdirectory(title="Select a folder to save updates in")
