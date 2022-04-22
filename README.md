@@ -5,9 +5,7 @@ This program is a simple Python script that parses RPCS3's `games.yml` file and 
 
 This program requires:
 * Python 3.8 or higher (due to using the amazing walrus operator that caused no controversy and everybody loved)
-* PyYAML (to parse the `games.yml` file)
-* AIOHTTP (to make HTTP requests without locking up the GUI)  
-  * Recommended: install AIOHTTP using `pip install aiohttp[speedups]` for faster DNS resolving and character encoding detection
+* Run ``pip install -r requirements.txt``
 
 The program uses an MIT License, so just give me credit if you want to do stuff with it, although quite frankly the code is so bad you probably won't want to use it anyway.
 
