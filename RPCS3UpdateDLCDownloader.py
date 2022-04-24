@@ -7,6 +7,7 @@ import threading
 import tkinter as tk
 from binascii import unhexlify
 from io import StringIO
+from os import listdir
 from tkinter import filedialog
 from tkinter import ttk
 from typing import Callable
@@ -147,9 +148,9 @@ async def load_game_info():
             dlc_matches = result.loc[result['Title ID'] == game]
             if dlc_matches.index.values.size != 0:
                 for index, row in dlc_matches.iterrows():
-                    dlc = [{"RAP": row["RAP"], "version": "N/A", "size": str(int(row["File Size"])),
-                            "url": row["PKG direct link"], "ps3_system_ver": "1.00", "ContentID": row["Content ID"]}]
-                    updates_dict[f'{title}-{row["Name"]}'] = dlc
+                    dlc = {"RAP": row["RAP"], "version": "N/A", "Name": row["Name"], "size": str(int(row["File Size"])),
+                            "url": row["PKG direct link"], "ps3_system_ver": "1.00", "ContentID": row["Content ID"]}
+                    updates_list.append(dlc)
 
     # For a given title and its updates in updates_dict:
     for (title, updates) in updates_dict.items():
@@ -159,24 +160,27 @@ async def load_game_info():
         # For each update for a given game:
 
         for update in updates:
-            # Create a Tkinter Label and set its text to show the version of the update file.
-            game_version = tk.Label(current_game, text=f"Version: {update['version']}")
-            game_version.pack()
-            # Create a Tkinter Label and set its text to show the size of the update file in MiB rounded to 1 decimal place.
-            game_size = tk.Label(current_game, text=f"Update Size: {round(int(update['size']) / ONE_MEBIBYTE, 1)} MiB")
-            game_size.pack()
             # Create a Tkinter Label and set its text to show the SHA1 Checksum of the update file.
             if "sha1sum" in update:
-                game_sha1_sum = tk.Label(current_game, text=f"SHA1 Checksum: {update['sha1sum']}")
+                game_sha1_or_rap = tk.Label(current_game, text=f"SHA1 Checksum: {update['sha1sum']}")
+                game_version_or_dlc = tk.Label(current_game, text=f"Version: {update['version']}")
+                # Create a Tkinter Label and set its text to show the PS3 firmware version required by the update.
+                game_system_version = tk.Label(current_game,text="Required Firmware: Version %.2f" % float(update['ps3_system_ver']))
+                game_system_version.pack()
+                # Create a Tkinter Button that will download the update to the previously specified save path on click.
+                game_download = tk.Button(current_game, text="Download Update")
+                # Create a Tkinter Label and set its text to show the size of the update file in MiB rounded to 1 decimal place.
+                dlc_upd_size = tk.Label(current_game,text=f"Update Size: {round(int(update['size']) / ONE_MEBIBYTE, 1)} MiB")
             else:
-                game_sha1_sum = tk.Label(current_game, text=f"RAP File: {update['RAP']}")
-            game_sha1_sum.pack()
-            # Create a Tkinter Label and set its text to show the PS3 firmware version required by the update.
-            game_system_version = tk.Label(current_game,
-                                           text="Required Firmware: Version %.2f" % float(update['ps3_system_ver']))
-            game_system_version.pack()
-            # Create a Tkinter Button that will download the update to the previously specified save path on click.
-            game_download = tk.Button(current_game, text="Download Update")
+                game_sha1_or_rap = tk.Label(current_game, text=f"RAP File: {update['RAP']}")
+                game_version_or_dlc = tk.Label(current_game, text=f'DLC Title: {update["Name"]}')
+                game_download = tk.Button(current_game, text="Download DLC")
+                dlc_upd_size = tk.Label(current_game,text=f"DLC Size: {round(int(update['size']) / ONE_MEBIBYTE, 1)} MiB")
+            dlc_upd_size.pack()
+            game_version_or_dlc.pack()
+            game_sha1_or_rap.pack()
+
+
             # Set the Button's command to download the specified game update using the async_download_handler function.
             # The reason this looks like such a mess is because:
             # 1. I am bad at coding.
@@ -185,7 +189,7 @@ async def load_game_info():
             game_download.config(
                 command=lambda url=update['url'], button=game_download, size=int(update['size']): async_op(
                     async_download_handler, [url, save_path, size, button]))
-            if "ContentID" in update and len(update["RAP"]) == 32:
+            if "ContentID" in update and len(str(update["RAP"])) == 32:
                 if not os.path.exists(f'{config["settings"]["rap_location"]}/{update["ContentID"]}.rap'):
                     with open(f'{config["settings"]["rap_location"]}/{update["ContentID"]}.rap', "wb") as f:
                         f.write(unhexlify(update["RAP"]))
@@ -239,6 +243,9 @@ if not os.path.exists("config.ini"):
     # Prompt the user to select a folder to save their rap files in.
     config["settings"]["rap_location"] = filedialog.askdirectory(title="Select a folder to save raps in")
 
+    # Prompt the user to select a folder to save their rap files in.
+    config["settings"]["games_folder"] = filedialog.askdirectory(title="Select your dev_hdd0/game folder")
+
     # Prompt the user to select a folder to save their PS3 game updates in.
     config["settings"]["save_path"] = filedialog.askdirectory(title="Select a folder to save updates in")
 else:
@@ -248,6 +255,9 @@ else:
 games = yaml.safe_load(open(config["settings"]["file_path"]))
 # Set game_ids to a list of the game IDs present in 'games.yml'
 game_ids = list(games.keys())
+for item in listdir(config["settings"]["games_folder"]):
+    if len(item) == 9 and item not in game_ids:
+        game_ids.append(item)
 # Set updates_dict to an empty dictionary
 updates_dict = {}
 
