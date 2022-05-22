@@ -1,4 +1,4 @@
-RPCS3 Update Downloader
+RPCS3 Update DLC Downloader
 =======================
 
 This program is a simple Python script that parses RPCS3's `games.yml` file and allows the user to download updates for any games in their RPCS3 library using a simple tkinter GUI.
